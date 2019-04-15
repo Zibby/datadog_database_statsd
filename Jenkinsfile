@@ -3,6 +3,7 @@ pipeline {
     dockerfile {
       filename 'Dockerfile'
     }
+
   }
   stages {
     stage('init') {
@@ -12,7 +13,7 @@ pipeline {
     }
     stage('Test') {
       steps {
-        sh 'HOME=./ rake test'
+        sh 'test'
       }
     }
     stage('cleanup') {
@@ -24,9 +25,13 @@ pipeline {
   post {
     success {
       slackSend(botUser: true, color: '#36a64f', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+
     }
+
     failure {
       slackSend(botUser: true, color: '#b70000', message: "FAIL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+
     }
+
   }
 }
