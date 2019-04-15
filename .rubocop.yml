@@ -1,0 +1,22 @@
+# Alliants Rubocop standards
+require: rubocop-performance
+
+AllCops:
+  Include:
+    - Rakefile
+    - config.ru
+  Exclude:
+    - config/**/*
+    - db/**/*
+  TargetRubyVersion: 2.5 # update to your version of Ruby
+
+Rails:
+  Enabled: true
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+  Enabled: true
+Metrics/LineLength:
+  Max: 99
+Documentation:
+  Enabled: false

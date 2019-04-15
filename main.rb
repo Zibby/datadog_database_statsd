@@ -1,0 +1,77 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "datadog/statsd"
+require "pg"
+require "yaml"
+require "logger"
+
+LOGGER = Logger.new(STDOUT).freeze
+
+# Create a stats instance.
+STATSD = Datadog::Statsd.new("localhost", 8125).freeze
+
+class Monitorable
+  attr_accessor :value,
+                :query_frequency, # maybe, gets into the relm of redis/delayedjobs
+                #                   and having another db to manage (maybe lightsql?)
+                :metric_type,
+                :tags
+
+  def initialize(query)
+    @name = query["name"]
+    @psql_query = query["query"] # should probably rename something :facepalm:
+    @metric_type = query["metric_type"].downcase
+    db_name = query["database"]
+    @database = select_database(db_name)
+    @database_name = query["database_name"]
+    @value = run_query
+    send(metric_type) # might be neater to do some kinda yield
+  end
+
+  def select_database(db_name)
+    LOGGER.info "selecting database: #{db_name}"
+    databases = YAML.load_file("databases.yml")["databases"]
+    databases.select { |db| db["name"] == db_name }.first
+  end
+
+  def connect_to_database
+    LOGGER.info "connecting to database"
+    PG::Connection.new(
+      @database["host"],
+      @database["port"],
+      @database["options"],
+      @database["tty"],
+      @database["database"],
+      @database["user"],
+      @database["password"]
+    )
+  end
+
+  def run_query
+    conn = connect_to_database
+    LOGGER.info "running query"
+    result = conn.exec(@psql_query).getvalue(0,0)
+    LOGGER.info "finished query"
+    conn.finish
+    result
+  end
+
+  def gauge
+    LOGGER.info "sending #{@name} = #{@value} as a GAUGE"
+    STATSD.gauge(@name, @value)
+  end
+
+  def count
+    LOGGER.info "sending #{@name} = #{@value} as a COUNT"
+    STATSD.count(@name, @value)
+  end
+end
+
+loop do
+  YAML.load_file("./queries.yml")["queries"].each do |query|
+    Monitorable.new(query)
+  end
+  LOGGER.info "sleeping"
+  sleep 60
+end
