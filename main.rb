@@ -7,9 +7,9 @@ require "yaml"
 require "logger"
 
 LOGGER = Logger.new(STDOUT).freeze
-LOGGER.info 'Logger initiated'
+LOGGER.info "Logger initiated"
 # Create a stats instance.
-STATSD = Datadog::Statsd.new("localhost", 8125).freeze
+STATSD = Datadog::Statsd.new(nil, nil, socket_path: "/var/run/datadog/dsd.socket").freeze
 
 class Monitorable
   attr_accessor :value,
