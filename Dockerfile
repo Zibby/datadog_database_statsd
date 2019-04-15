@@ -10,3 +10,4 @@ RUN bundle install
 
 # Upload source
 COPY . $APP_HOME
+CMD[ "bundle", "exec", "rake"]
