@@ -2,10 +2,15 @@
 
 task default: %w[test]
 
+task :install do
+  sh "bundle install"
+end
+
 task :test do
+  sh "bundle install"
   sh "rubocop"
 end
 
 task :start do
-  ruby "main.rb"
+  sh "bundle exec main.rb"
 end
