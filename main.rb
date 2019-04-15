@@ -7,7 +7,7 @@ require "yaml"
 require "logger"
 
 LOGGER = Logger.new(STDOUT).freeze
-
+LOGGER.info 'Logger initiated'
 # Create a stats instance.
 STATSD = Datadog::Statsd.new("localhost", 8125).freeze
 
@@ -68,7 +68,9 @@ class Monitorable
   end
 end
 
+LOGGER.info "Starting"
 loop do
+  LOGGER.info "Kicking off loop"
   YAML.load_file("./queries.yml")["queries"].each do |query|
     Monitorable.new(query)
   end
