@@ -9,7 +9,7 @@ require "logger"
 LOGGER = Logger.new(STDOUT).freeze
 LOGGER.info "Logger initiated"
 # Create a stats instance.
-STATSD = Datadog::Statsd.new(nil, nil, socket_path: "/var/run/datadog/dsd.socket").freeze
+STATSD = Datadog::Statsd.new(nil, nil, socket_path: "/var/run/datadog/dsd.socket", logger: LOGGER).freeze
 
 class Monitorable
   attr_accessor :value,
