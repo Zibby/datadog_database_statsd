@@ -36,6 +36,7 @@ class Monitorable
       datadog_event("Got a nil value for #{@name}")
     else
       send(@metric_type)
+    end
   end
 
   def select_database(db_name)
