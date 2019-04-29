@@ -16,6 +16,14 @@ pipeline {
         sh 'HOME=./ rake test'
       }
     }
+  stage('Build'){
+    steps {
+      docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+            app.push("${env.BUILD_NUMBER}")
+            app.push("latest")
+      }
+    }
+  }
     stage('cleanup') {
       steps {
         cleanWs(deleteDirs: true, cleanupMatrixParent: true, cleanWhenUnstable: true, cleanWhenSuccess: true, cleanWhenNotBuilt: true, cleanWhenFailure: true, cleanWhenAborted: true, disableDeferredWipeout: true)
