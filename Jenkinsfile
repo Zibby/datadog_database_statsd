@@ -6,7 +6,6 @@ pipeline {
         sh 'HOME=./ bundle install'
         sh 'HOME=./ rake test'
         sh './pusher.sh'
-        }
       }
     }
     stage('cleanup') {
