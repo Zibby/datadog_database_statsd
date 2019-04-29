@@ -11,12 +11,12 @@ pipeline {
         sh 'HOME=./ bundle install'
       }
     }
-    stage('Test') {
+    stage('test') {
       steps {
         sh 'HOME=./ rake test'
       }
     }
-    stage('Build and Push Image') {
+    stage('build-docker-image') {
       steps {
         withDockerRegistry(credentialsId: 'f8a79f84-5ad0-43e4-b32c-87e2c6001a62', url: 'registry.hub.docker.com') {
           def app = docker.build("zibby/datadog_postgres_statsd")
