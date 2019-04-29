@@ -10,7 +10,12 @@ require "socket"
 LOGGER = Logger.new(STDOUT).freeze
 LOGGER.info "Logger initiated"
 # Create a stats instance.
-STATSD = Datadog::Statsd.new(nil, nil, socket_path: "/var/run/datadog/dsd.socket", logger: LOGGER).freeze
+STATSD = Datadog::Statsd.new(
+  nil,
+  nil,
+  socket_path: "/var/run/datadog/dsd.socket",
+  logger: LOGGER
+).freeze
 
 class Monitorable
   attr_accessor :value,
@@ -70,19 +75,19 @@ class Monitorable
     conn.finish
     result
   end
-  
-  def datadog_event(message, alert_type = 'info')
+
+  def datadog_event(message, alert_type = "info")
     hostname = Socket.gethostname
-    STATS.event("#{hostname} dd-statsd-posgres", message, alert_type: alert_type)
+    STATSD.event("#{hostname} dd-statsd-posgres", message, alert_type: alert_type)
   end
 
   def gauge
-    #LOGGER.info "sending #{@name} = #{@value} as a GAUGE"
+    # LOGGER.info "sending #{@name} = #{@value} as a GAUGE"
     STATSD.gauge(@name, @value)
   end
 
   def count
-    #LOGGER.info "sending #{@name} = #{@value} as a COUNT"
+    # LOGGER.info "sending #{@name} = #{@value} as a COUNT"
     STATSD.count(@name, @value)
   end
 end
