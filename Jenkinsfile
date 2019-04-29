@@ -6,14 +6,14 @@ pipeline {
 
   }
   stages {
-    stage('init') {
+   stage('init') {
       steps {
         sh 'HOME=./ bundle install'
       }
     }
     stage('Test') {
       steps {
-        sh 'test'
+        sh 'HOME=./ rake test'
       }
     }
     stage('cleanup') {
