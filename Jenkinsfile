@@ -1,9 +1,5 @@
 pipeline {
-  agent {
-    dockerfile {
-      filename 'Dockerfile'
-    }
-  }
+  agent any
   stages {
     stage('init') {
       steps {
@@ -23,6 +19,7 @@ pipeline {
             app.push("latest")
           }
         }
+
       }
     }
     stage('cleanup') {
@@ -34,9 +31,13 @@ pipeline {
   post {
     success {
       slackSend(botUser: true, color: '#36a64f', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+
     }
+
     failure {
       slackSend(botUser: true, color: '#b70000', message: "FAIL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
+
     }
+
   }
 }
