@@ -6,7 +6,7 @@ pipeline {
 
   }
   stages {
-   stage('init') {
+    stage('init') {
       steps {
         sh 'HOME=./ bundle install'
       }
@@ -16,13 +16,15 @@ pipeline {
         sh 'HOME=./ rake test'
       }
     }
-  stage('Build') {
-    app = docker.build("zibby/datadog_postgres_statsd")
-    docker.withRegistry('https://registry.hub.docker.com', 'Dockerhub') {
-          app.push("${env.BUILD_NUMBER}")
-          app.push("latest")
+    stage('Build') {
+      steps {
+        app = docker.build("zibby/datadog_postgres_statsd")
+        docker.withRegistry('https://registry.hub.docker.com', 'Dockerhub') {
+              app.push("${env.BUILD_NUMBER}")
+              app.push("latest")
+        }
+      }
     }
-  }
     stage('cleanup') {
       steps {
         cleanWs(deleteDirs: true, cleanupMatrixParent: true, cleanWhenUnstable: true, cleanWhenSuccess: true, cleanWhenNotBuilt: true, cleanWhenFailure: true, cleanWhenAborted: true, disableDeferredWipeout: true)
