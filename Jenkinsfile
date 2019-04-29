@@ -4,19 +4,10 @@ pipeline {
     stage('init') {
       steps {
         sh 'HOME=./ bundle install'
-      }
-    }
-    stage('test') {
-      steps {
         sh 'HOME=./ rake test'
-      }
-    }
-    stage('build-docker-image') {
-      steps {
         withDockerRegistry(credentialsId: 'f8a79f84-5ad0-43e4-b32c-87e2c6001a62', url: 'https://<my-docker-registry>/') {
           sh './pusher.sh'
         }
-
       }
     }
     stage('cleanup') {
@@ -28,13 +19,9 @@ pipeline {
   post {
     success {
       slackSend(botUser: true, color: '#36a64f', message: "SUCCESSFUL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
-
     }
-
     failure {
       slackSend(botUser: true, color: '#b70000', message: "FAIL: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]' (${env.BUILD_URL})")
-
     }
-
   }
 }
