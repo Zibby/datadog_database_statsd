@@ -5,7 +5,7 @@ pipeline {
       steps {
         sh 'HOME=./ bundle install'
         sh 'HOME=./ rake test'
-        withDockerRegistry(credentialsId: 'f8a79f84-5ad0-43e4-b32c-87e2c6001a62', url: 'registry.hub.docker.com') {
+        withDockerRegistry(credentialsId: 'f8a79f84-5ad0-43e4-b32c-87e2c6001a62', url: 'https://registry.hub.docker.com') {
           sh './pusher.sh'
         }
       }
