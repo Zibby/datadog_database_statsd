@@ -6,8 +6,10 @@ require "pg"
 require "yaml"
 require "logger"
 require "socket"
+require "timeout"
 
 LOGGER = Logger.new(STDOUT).freeze
+TIMEOUT = 500 # Time SQL queries can run for before timeing out in seconds
 LOGGER.info "Logger initiated"
 # Create a stats instance.
 STATSD = Datadog::Statsd.new(
@@ -17,7 +19,7 @@ STATSD = Datadog::Statsd.new(
   logger: LOGGER
 ).freeze
 
-class Monitorable
+class Monitorables
   attr_accessor :value,
                 :query_frequency, # maybe, gets into the relm of redis/delayedjobs
                 #                   and having another db to manage (maybe lightsql?)
@@ -31,6 +33,10 @@ class Monitorable
     db_name = query["database"]
     @database = select_database(db_name)
     @database_name = query["database_name"]
+    @@all_monitorables << self
+  end
+
+  def process
     @value = run_query
     send_to_datadog
   end
@@ -63,20 +69,24 @@ class Monitorable
     )
   end
 
-  def run_query
+  def exec_with_timer
     conn = connect_to_database
+    t1 = Time.now.to_i
+    result = conn.exec(@psql_query).getvalue(0, 0)
+    t2 = Time.now.to_i
+    time_taken = t2 - t1
+    LOGGER.info "finished query, took #{time_taken}s"
+    conn.finish
+    result
+  end
+
+  def run_query
     LOGGER.info "running query: #{@psql_query}"
     begin
-      t1 = Time.now.to_i
-      result = conn.exec(@psql_query).getvalue(0, 0)
-      t2 = Time.now.to_i
-      time_taken = t2 - t1
-      LOGGER.info "finished query, took #{time_taken}s"
+      exec_with_timer
     rescue StandardError => e
       datadog_event(e.message, "error")
     end
-    conn.finish
-    result
   end
 
   def datadog_event(message, alert_type = "info")
@@ -93,14 +103,43 @@ class Monitorable
     # LOGGER.info "sending #{@name} = #{@value} as a COUNT"
     STATSD.count(@name, @value)
   end
+
+  def should_skip?
+    true if @metric_type == "skip"
+  end
+
+  class << self
+    attr_accessor :all_monitorables
+
+    def load_from_yaml
+      YAML.load_file("./queries.yml")["queries"].each do |query|
+        new(query)
+      end
+    end
+
+    @@all_monitorables = []
+
+    def each_do
+      count = 0
+      @@all_monitorables.each do |item|
+        count += 1
+        LOGGER.info "Doing #{count} of #{@@all_monitorables.count}"
+        if item.should_skip?
+          LOGGER.info "skipping query due to type being = skip"
+          next
+        end
+        yield item
+      end
+    end
+  end
 end
 
 LOGGER.info "Starting"
+Monitorables.load_from_yaml
 loop do
   LOGGER.info "Kicking off loop"
-  YAML.load_file("./queries.yml")["queries"].each do |query|
-    Monitorable.new(query)
-  end
+  Monitorables.each_do { |q| q&.process }
+
   LOGGER.info "sleeping"
   sleep 60
 end
