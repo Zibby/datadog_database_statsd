@@ -65,13 +65,16 @@ class Monitorable
 
   def run_query
     conn = connect_to_database
-    LOGGER.info "running query"
+    LOGGER.info "running query: #{@psql_query}"
     begin
+      t1 = Time.now.to_i
       result = conn.exec(@psql_query).getvalue(0, 0)
+      t2 = Time.now.to_i
+      time_taken = t2 - t1
+      LOGGER.info "finished query, took #{time_taken}s"
     rescue StandardError => e
       datadog_event(e.message, "error")
     end
-    LOGGER.info "finished query"
     conn.finish
     result
   end
