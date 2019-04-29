@@ -13,7 +13,9 @@ pipeline {
     }
     stage('build-docker-image') {
       steps {
-        sh 'pusher.sh'
+        withDockerRegistry([credentialsId: 'f8a79f84-5ad0-43e4-b32c-87e2c6001a62', url: "https://<my-docker-registry>/"]) {
+          sh './pusher.sh'
+        }
       }
     }
     stage('cleanup') {
