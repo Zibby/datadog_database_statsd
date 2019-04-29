@@ -16,7 +16,7 @@ pipeline {
         sh 'HOME=./ rake test'
       }
     }
-  stage('Build'){
+  stage('Build') {
     app = docker.build("zibby/datadog_postgres_statsd")
     docker.withRegistry('https://registry.hub.docker.com', 'Dockerhub') {
           app.push("${env.BUILD_NUMBER}")
