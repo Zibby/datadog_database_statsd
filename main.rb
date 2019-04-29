@@ -5,6 +5,7 @@ require "datadog/statsd"
 require "pg"
 require "yaml"
 require "logger"
+require "socket"
 
 LOGGER = Logger.new(STDOUT).freeze
 LOGGER.info "Logger initiated"
@@ -26,7 +27,15 @@ class Monitorable
     @database = select_database(db_name)
     @database_name = query["database_name"]
     @value = run_query
-    send(metric_type) # might be neater to do some kinda yield
+    send_to_datadog
+  end
+
+  def send_to_datadog
+    case @value
+    when nil
+      datadog_event("Got a nil value for #{@name}")
+    else
+      send(@metric_type)
   end
 
   def select_database(db_name)
@@ -56,14 +65,19 @@ class Monitorable
     conn.finish
     result
   end
+  
+  def datadog_event(message, alert_type = 'info')
+    hostname = Socket.gethostname
+    STATS.event("#{hostname} dd-statsd-posgres", message, alert_type: alert_type)
+  end
 
   def gauge
-    LOGGER.info "sending #{@name} = #{@value} as a GAUGE"
+    #LOGGER.info "sending #{@name} = #{@value} as a GAUGE"
     STATSD.gauge(@name, @value)
   end
 
   def count
-    LOGGER.info "sending #{@name} = #{@value} as a COUNT"
+    #LOGGER.info "sending #{@name} = #{@value} as a COUNT"
     STATSD.count(@name, @value)
   end
 end
