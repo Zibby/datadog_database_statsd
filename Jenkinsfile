@@ -17,12 +17,12 @@ pipeline {
       }
     }
     stage('Build') {
-      steps {
         app = docker.build("zibby/datadog_postgres_statsd")
-        docker.withRegistry('https://registry.hub.docker.com', 'Dockerhub') {
-              app.push("${env.BUILD_NUMBER}")
-              app.push("latest")
-        }
+    }
+    stage('Push') {
+      docker.withRegistry('https://registry.hub.docker.com', 'Dockerhub') {
+            app.push("${env.BUILD_NUMBER}")
+            app.push("latest")
       }
     }
     stage('cleanup') {
