@@ -87,7 +87,7 @@ class Monitorables
     begin
       exec_with_timer
     rescue StandardError => e
-      datadog_event(e.message, "error", [@database, @name])
+      datadog_event(e.message, "error", [@database_name, @name])
     end
   end
 
