@@ -85,13 +85,13 @@ class Monitorables
     begin
       exec_with_timer
     rescue StandardError => e
-      datadog_event(e.message, "error")
+      datadog_event(e.message, "error", [ @database, @name ])
     end
   end
 
-  def datadog_event(message, alert_type = "info")
+  def datadog_event(message, alert_type = "info", tags = [])
     hostname = Socket.gethostname
-    STATSD.event("#{hostname} dd-statsd-posgres", message, alert_type: alert_type)
+    STATSD.event("#{hostname} dd-statsd-posgres", message, alert_type: alert_type, tags: tags)
   end
 
   def gauge
@@ -117,6 +117,7 @@ class Monitorables
       end
     end
 
+    # SELF stuff
     @@all_monitorables = []
 
     def each_do
