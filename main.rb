@@ -24,7 +24,8 @@ class Monitorables
                 :query_frequency, # maybe, gets into the relm of redis/delayedjobs
                 #                   and having another db to manage (maybe lightsql?)
                 :metric_type,
-                :tags
+                :tags,
+                :blocker
 
   def initialize(query)
     @name = query["name"]
@@ -44,7 +45,8 @@ class Monitorables
   def send_to_datadog
     case @value
     when nil
-      datadog_event("Got a nil value for #{@name}")
+      @blocker = 20
+      datadog_event("Got a nil value for #{@name}, holding back for #{@blocker} cycles")
     else
       send(@metric_type)
     end
@@ -85,7 +87,7 @@ class Monitorables
     begin
       exec_with_timer
     rescue StandardError => e
-      datadog_event(e.message, "error", [ @database, @name ])
+      datadog_event(e.message, "error", [@database, @name])
     end
   end
 
@@ -105,7 +107,13 @@ class Monitorables
   end
 
   def should_skip?
-    true if @metric_type == "skip"
+    # always skip if enforced
+    return true if @metric_type == "skip"
+
+    # do nothing unless theres been a failure before
+    return false unless ! @blocker.nil?
+
+    @blocker -= 1
   end
 
   class << self
@@ -120,13 +128,23 @@ class Monitorables
     # SELF stuff
     @@all_monitorables = []
 
+    def handle_skips(item)
+      if item.metric_type == "skip"
+        LOGGER.info "skipping because of enforced skip in query.metric_type"
+      elsif !item.blocker.nil?
+        LOGGER.info "skipping because of past faulure. Skipping for #{item.blocker} runs"
+      else
+        LOGGER.error "unhandled error"
+      end
+    end
+
     def each_do
       count = 0
       @@all_monitorables.each do |item|
         count += 1
         LOGGER.info "Doing #{count} of #{@@all_monitorables.count}"
         if item.should_skip?
-          LOGGER.info "skipping query due to type being = skip"
+          handle_skips(item)
           next
         end
         yield item
