@@ -7,6 +7,7 @@ require "yaml"
 require "logger"
 require "socket"
 require "timeout"
+require 'pry'
 
 LOGGER = Logger.new(STDOUT).freeze
 TIMEOUT = 500 # Time SQL queries can run for before timeing out in seconds
@@ -34,7 +35,8 @@ class Monitorables
     db_name = query["database"]
     @database = select_database(db_name)
     @database_name = query["database_name"]
-    @@all_monitorables << self
+
+    @@all << self
   end
 
   def process
@@ -117,16 +119,17 @@ class Monitorables
   end
 
   class << self
-    attr_accessor :all_monitorables
+    @@all = []
+
+    def all
+      @@all
+    end
 
     def load_from_yaml
       YAML.load_file("./queries.yml")["queries"].each do |query|
         new(query)
       end
     end
-
-    # SELF stuff
-    @@all_monitorables = []
 
     def handle_skips(item)
       if item.metric_type == "skip"
@@ -140,9 +143,9 @@ class Monitorables
 
     def each_do
       count = 0
-      @@all_monitorables.each do |item|
+      @@all.each do |item|
         count += 1
-        LOGGER.info "Doing #{count} of #{@@all_monitorables.count}"
+        LOGGER.info "Doing #{count} of #{@@all.count}"
         if item.should_skip?
           handle_skips(item)
           next
@@ -155,6 +158,7 @@ end
 
 LOGGER.info "Starting"
 Monitorables.load_from_yaml
+
 loop do
   LOGGER.info "Kicking off loop"
   Monitorables.each_do { |q| q&.process }
