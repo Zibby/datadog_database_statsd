@@ -30,7 +30,9 @@ pipeline {
     stage('Push') {
       steps {
         script {
-          dockerImage.push($env.BRANCH_NAME)
+          docker.withRegistry( '', registryCredential) {
+            dockerImage.push()
+          }
         }
       }
     }
