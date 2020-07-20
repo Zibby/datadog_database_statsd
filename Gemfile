@@ -1,3 +1,5 @@
+# frozen_String_literal: true
+
 source "https://rubygems.org"
 
 gem "dogstatsd-ruby"
@@ -7,7 +9,7 @@ gem "rake"
 group :development do
   gem "pry"
   gem "rubocop"
-  gem "rubocop-rails"
   gem "rubocop-performance"
+  gem "rubocop-rails"
   gem "solargraph"
 end

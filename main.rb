@@ -8,7 +8,6 @@ require "logger"
 require "socket"
 require "timeout"
 require "./databases.rb"
-require "pry"
 
 LOGGER = Logger.new(STDOUT)
 TIMEOUT = 500 # Time SQL queries can run for before timeing out in seconds
@@ -26,6 +25,7 @@ STATSD = Datadog::Statsd.new(
   logger: LOGGER
 ).freeze
 
+# main class for handling queries to monitor in dd
 class Monitorables
   attr_accessor :value,
                 :query_frequency, # maybe, gets into the relm of redis/delayedjobs
@@ -62,7 +62,6 @@ class Monitorables
   end
 
   def select_database(db_name)
-    binding.pry
     matches = Database.all.select { |db| db.name == db_name }
     puts "MATCHES: #{matches}"
     return LOGGER.warn("No DB matching request name found") if matches.count.zero?
@@ -163,7 +162,7 @@ end
 
 LOGGER.info "Starting"
 Database.load_from_yaml
-Database.each { |db| db.connect_to_database }
+Database.each(&:connect_to_database)
 Monitorables.load_from_yaml
 
 loop do
