@@ -7,7 +7,6 @@ task :install do
 end
 
 task :test do
-  sh "bundle install"
   sh "rubocop"
 end
 
