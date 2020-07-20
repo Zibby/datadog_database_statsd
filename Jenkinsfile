@@ -6,6 +6,11 @@ pipeline {
   }
   agent any
   stages {
+    stage('Clone Git') {
+      steps {
+        git 'https://github.com/Zibby/datadog_database_statsd'
+      }
+    }
     stage('Build Image') {
       steps {
         script {
@@ -16,18 +21,18 @@ pipeline {
     stage('Test') {
       steps {
         script {
-        dockerImage.inside {
-          sh 'rake test'
-        }
+          dockerImage.inside {
+            sh 'rake test'
+          }
         }
       }
     }
     stage('Push') {
       steps {
-      script {
-        dockerImage.push($env.BRANCH_NAME)
+        script {
+          dockerImage.push($env.BRANCH_NAME)
+        }
       }
-    }
     }
   }
   post {
