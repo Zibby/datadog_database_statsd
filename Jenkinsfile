@@ -1,17 +1,25 @@
 pipeline {
+  environment {
+    registery = "zibby/datadog_postgres_statsd"
+    registryCredential = 'f8a79f84-5ad0-43e4-b32c-87e2c6001a62'
+    dockerImage = ''
+  }
   agent any
   stages {
-    stage('init') {
+    stage('Build Image') {
       steps {
-        sh 'HOME=./ bundle install'
-        sh 'HOME=./ rake test'
-        sh './pusher.sh'
+        script {
+          dockerImage = docker.build registry + ":" + "$env.BRANCH_NAME"
+        }
       }
     }
-    stage('cleanup') {
-      steps {
-        cleanWs(deleteDirs: true, cleanupMatrixParent: true, cleanWhenUnstable: true, cleanWhenSuccess: true, cleanWhenNotBuilt: true, cleanWhenFailure: true, cleanWhenAborted: true, disableDeferredWipeout: true)
+    stage('Test') {
+      dockerImage.inside {
+        sh 'rake test'
       }
+    }
+    stage('Push') {
+      dockerImage.push($env.BRANCH_NAME)
     }
   }
   post {
