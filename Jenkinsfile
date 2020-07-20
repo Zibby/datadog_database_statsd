@@ -14,12 +14,16 @@ pipeline {
       }
     }
     stage('Test') {
-      dockerImage.inside {
-        sh 'rake test'
+      steps {
+        dockerImage.inside {
+          sh 'rake test'
+        }
       }
     }
     stage('Push') {
-      dockerImage.push($env.BRANCH_NAME)
+      steps {
+        dockerImage.push($env.BRANCH_NAME)
+      }
     }
   }
   post {
