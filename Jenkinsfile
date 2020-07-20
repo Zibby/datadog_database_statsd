@@ -1,6 +1,6 @@
 pipeline {
   environment {
-    registery = "zibby/datadog_postgres_statsd"
+    registry = "zibby/datadog_postgres_statsd"
     registryCredential = 'f8a79f84-5ad0-43e4-b32c-87e2c6001a62'
     dockerImage = ''
   }
