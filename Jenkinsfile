@@ -15,15 +15,19 @@ pipeline {
     }
     stage('Test') {
       steps {
+        script {
         dockerImage.inside {
           sh 'rake test'
+        }
         }
       }
     }
     stage('Push') {
       steps {
+      script {
         dockerImage.push($env.BRANCH_NAME)
       }
+    }
     }
   }
   post {
