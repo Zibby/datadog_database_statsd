@@ -7,11 +7,16 @@ require "yaml"
 require "logger"
 require "socket"
 require "timeout"
-require 'pry'
+require "./databases.rb"
 
-LOGGER = Logger.new(STDOUT).freeze
+LOGGER = Logger.new(STDOUT)
 TIMEOUT = 500 # Time SQL queries can run for before timeing out in seconds
-LOGGER.info "Logger initiated"
+# Log in json format
+LOGGER.formatter = proc do |_severity, datetime, _progname, msg|
+  %({timestamp: "#{datetime}", message: "#{msg}"}\n)
+end
+LOGGER.info "LOGGER initiated"
+
 # Create a stats instance.
 STATSD = Datadog::Statsd.new(
   nil,
@@ -20,6 +25,7 @@ STATSD = Datadog::Statsd.new(
   logger: LOGGER
 ).freeze
 
+# main class for handling queries to monitor in dd
 class Monitorables
   attr_accessor :value,
                 :query_frequency, # maybe, gets into the relm of redis/delayedjobs
@@ -35,6 +41,7 @@ class Monitorables
     db_name = query["database"]
     @database = select_database(db_name)
     @database_name = query["database_name"]
+    @has_connection = false
 
     @@all << self
   end
@@ -55,26 +62,23 @@ class Monitorables
   end
 
   def select_database(db_name)
-    LOGGER.info "selecting database: #{db_name}"
-    databases = YAML.load_file("databases.yml")["databases"]
-    databases.select { |db| db["name"] == db_name }.first
-  end
+    matches = Database.all.select { |db| db.name == db_name }
+    puts "MATCHES: #{matches}"
+    return LOGGER.warn("No DB matching request name found") if matches.count.zero?
 
-  def connect_to_database
-    LOGGER.info "connecting to database"
-    PG::Connection.new(
-      @database["host"],
-      @database["port"],
-      @database["options"],
-      @database["tty"],
-      @database["database"],
-      @database["user"],
-      @database["password"]
-    )
+    if matches.count == 1
+      self.has_connection = true
+      return matches.first
+    end
+
+    LOGGER.error("Multiple Matches for db, please check config")
+    exit 1
   end
 
   def exec_with_timer
-    conn = connect_to_database
+    return unless has_connection
+
+    conn = @database.connection
     t1 = Time.now.to_i
     result = conn.exec(@psql_query).getvalue(0, 0)
     t2 = Time.now.to_i
@@ -113,7 +117,7 @@ class Monitorables
     return true if @metric_type == "skip"
 
     # do nothing unless theres been a failure before
-    return false unless ! @blocker.nil?
+    return false if @blocker.nil?
 
     @blocker -= 1
   end
@@ -157,6 +161,8 @@ class Monitorables
 end
 
 LOGGER.info "Starting"
+Database.load_from_yaml
+Database.each(&:connect_to_database)
 Monitorables.load_from_yaml
 
 loop do
